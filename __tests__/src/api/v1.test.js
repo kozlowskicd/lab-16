@@ -48,7 +48,7 @@ describe('api server', () => {
     return mockRequest
       .get('/api/v1/articles')
       .then(results => {
-        expect(results.status).toBe(200);
+        expect(results.status).toBe(401);
       })
       .catch(err => {
         expect(err).not.toBeDefined();

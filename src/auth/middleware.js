@@ -42,9 +42,10 @@ export default (capability) => {
     }
 
     function _authenticate(user) {
-      if ( user ) {
+      if ( user && (!capability) || user.can(capability)) {
         req.user = user;
         req.token = user.generateToken();
+        // console.log('in _authinticate: ', user);
         next();
       }
       else {

@@ -7,9 +7,16 @@ import jwt from 'jsonwebtoken';
 const userSchema = new mongoose.Schema({
   username: {type: String, required: true, unique: true},
   password: {type: String, required: true},
-  email: {type: String}
+  email: {type: String},
+  role: {type: String, required: true, enum: ['user', 'editor', 'admin'], default: 'user'},
+  capabilities: {type: Array},
 });
 
+const capabilities = {
+  user: ['read'],
+  editor: ['read', 'create', 'update'],
+  admin: ['read', 'create', 'update', 'delete'],
+}
 userSchema.pre('save', function(next) {
   bcrypt.hash(this.password,10)
     .then(hashedPassword => {
@@ -19,7 +26,15 @@ userSchema.pre('save', function(next) {
     .catch( error => {throw error;} );
 });
 
+userSchema.methods.can = function(capability) {
+  return capabilities[this.role].includes(capability);
+}
+
 userSchema.statics.createFromOAuth = function(incoming) {
+
+  if (!incoming.role) {
+    return Promise.reject(`Valid role required.  Options are 'user', 'editor', or 'admin'.`)
+  }
 
   if ( ! incoming || ! incoming.email ) {
     return Promise.reject('VALIDATION ERROR: missing username/email or password ');
@@ -69,6 +84,7 @@ userSchema.methods.comparePassword = function(password) {
 // Generate a JWT from the user id and a secret
 userSchema.methods.generateToken = function() {
   let tokenData = {
+    capabilities:capabilities[this.role],
     id:this._id,
   };
   return jwt.sign(tokenData, process.env.SECRET || 'changeit' );
